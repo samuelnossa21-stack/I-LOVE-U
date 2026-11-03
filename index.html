@@ -1,0 +1,772 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuestros 8 Meses - Libro de Amor</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@400;600;700&family=Lora:ital,wght@0,400;0,500;1,400&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bookCover: '#8B263E',
+                        bookCoverDark: '#5c1727',
+                        goldAccent: '#D4AF37',
+                        goldLight: '#F3E5AB',
+                        parchment: '#FDFBF7',
+                        parchmentDark: '#F4EAD3',
+                        warmInk: '#2C1810',
+                        roseAccent: '#C86D7C'
+                    },
+                    fontFamily: {
+                        serif: ['Lora', 'serif'],
+                        heading: ['Playfair Display', 'serif'],
+                        cursive: ['Alex Brush', 'cursive'],
+                        cinzel: ['Cinzel', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Styles for 3D Book Experience */
+        body {
+            background: radial-gradient(circle at center, #2e1c23 0%, #12090d 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* Ambient Lighting overlay */
+        .ambient-light {
+            background: radial-gradient(circle at 50% 30%, rgba(243, 229, 171, 0.15) 0%, rgba(0,0,0,0) 70%);
+            pointer-events: none;
+        }
+
+        /* Paper Texture simulation */
+        .paper-texture {
+            background-color: #FDFBF7;
+            background-image: radial-gradient(#e2d7c5 0.75px, transparent 0.75px), radial-gradient(#e2d7c5 0.75px, #FDFBF7 0.75px);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+            box-shadow: inset 0 0 40px rgba(139, 38, 62, 0.05);
+        }
+
+        /* 3D Container & Page Flip Engine */
+        .book-viewport {
+            perspective: 2000px;
+            perspective-origin: 50% 50%;
+        }
+
+        .book-container {
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transform-origin: left center;
+            transform-style: preserve-3d;
+            transition: transform 0.9s cubic-bezier(0.645, 0.045, 0.355, 1), z-index 0.9s ease;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            border-radius: 4px 16px 16px 4px;
+            cursor: pointer;
+        }
+
+        /* Front and Back of Each Page Sheet */
+        .page-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            backface-visibility: hidden;
+            border-radius: 4px 16px 16px 4px;
+            overflow: hidden;
+        }
+
+        .page-back {
+            transform: rotateY(180deg);
+            border-radius: 16px 4px 4px 16px;
+        }
+
+        /* Turned state */
+        .page.flipped {
+            transform: rotateY(-180deg);
+        }
+
+        /* Spine Shadow Effects */
+        .spine-shadow-left {
+            box-shadow: inset 20px 0 30px -10px rgba(0, 0, 0, 0.25);
+        }
+        .spine-shadow-right {
+            box-shadow: inset -20px 0 30px -10px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Custom Scrollbar for inner content if needed */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #C86D7C;
+            border-radius: 10px;
+        }
+
+        /* Floating Hearts Canvas */
+        #hearts-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Gold Foil Shimmer */
+        .gold-shimmer {
+            background: linear-gradient(135deg, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gold-border {
+            border-image: linear-gradient(to bottom right, #BF953F, #FCF6BA, #AA771C) 1;
+        }
+
+        /* Subtle Corner Peeling Effect on Hover */
+        .page:not(.flipped):hover {
+            transform: rotateY(-8deg);
+        }
+        .page.flipped:hover {
+            transform: rotateY(-172deg);
+        }
+
+        /* Glow animation */
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.4; filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.4)); }
+            50% { opacity: 0.8; filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.8)); }
+        }
+
+        .glow-pulse {
+            animation: pulseGlow 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between min-h-screen p-2 sm:p-6 overflow-hidden select-none font-serif text-warmInk">
+
+    <!-- Ambient Overlay -->
+    <div class="ambient-light absolute inset-0 z-0"></div>
+
+    <!-- Floating Particles Canvas -->
+    <canvas id="hearts-canvas"></canvas>
+
+    <!-- Top Bar Navigation & Controls -->
+    <header class="w-full max-w-5xl flex justify-between items-center z-20 px-4 py-2 sm:py-3 bg-black/30 backdrop-blur-md rounded-full border border-white/10 shadow-xl text-white">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-book-bookmark text-goldAccent text-xl"></i>
+            <span class="font-cinzel tracking-wider text-sm sm:text-base text-goldLight font-bold">Nuestros 8 Meses</span>
+        </div>
+
+        <div class="flex items-center space-x-3 sm:space-x-4">
+            <!-- Page Indicator -->
+            <div id="page-indicator" class="text-xs sm:text-sm font-sans tracking-wide bg-white/10 px-3 py-1 rounded-full text-pink-100">
+                Portada
+            </div>
+
+            <!-- Audio Toggle Button -->
+            <button id="music-btn" class="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-roseAccent/30 hover:bg-roseAccent/50 border border-roseAccent/50 text-white transition-all transform hover:scale-105 active:scale-95 shadow-md" title="Música de fondo">
+                <i id="music-icon" class="fa-solid fa-music text-sm"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Book Viewport -->
+    <main class="w-full max-w-4xl flex-1 flex items-center justify-center my-2 sm:my-6 z-10">
+        <div class="book-viewport w-full max-w-[350px] sm:max-w-[480px] md:max-w-[850px] h-[520px] sm:h-[580px] md:h-[560px] relative">
+            
+            <!-- Book Spine Base (Spread Background) -->
+            <div class="book-container w-full h-full relative mx-auto">
+
+                <!-- SHEET 1 (Cover / Back of Cover - Page 1) -->
+                <div id="page-1" class="page z-40" onclick="flipPage(1)">
+                    <!-- Front Cover -->
+                    <div class="page-face page-front bg-bookCover border-2 border-goldAccent/30 p-6 sm:p-10 flex flex-col justify-between items-center text-center text-goldLight shadow-2xl overflow-hidden">
+                        <!-- Ornate Background Frame -->
+                        <div class="absolute inset-3 border-2 border-goldAccent/40 rounded-lg pointer-events-none flex flex-col justify-between p-2">
+                            <div class="flex justify-between text-xs text-goldAccent"><i class="fa-solid fa-crown"></i><i class="fa-solid fa-crown"></i></div>
+                            <div class="flex justify-between text-xs text-goldAccent"><i class="fa-solid fa-crown"></i><i class="fa-solid fa-crown"></i></div>
+                        </div>
+
+                        <!-- Cover Content -->
+                        <div class="mt-8 space-y-3 z-10">
+                            <p class="font-cursive text-3xl sm:text-4xl text-roseAccent">Para mi amor</p>
+                            <h1 class="font-cinzel text-3xl sm:text-5xl font-bold tracking-widest gold-shimmer uppercase py-2">
+                                Nuestros<br>8 Meses
+                            </h1>
+                            <div class="w-24 h-0.5 bg-gradient-to-r from-transparent via-goldAccent to-transparent mx-auto"></div>
+                        </div>
+
+                        <!-- Center Emblem -->
+                        <div class="my-auto z-10 relative">
+                            <div class="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-2 border-goldAccent/50 flex items-center justify-center bg-bookCoverDark/60 shadow-inner glow-pulse">
+                                <i class="fa-solid fa-heart text-5xl sm:text-6xl text-roseAccent"></i>
+                            </div>
+                        </div>
+
+                        <!-- Footer Instruction -->
+                        <div class="mb-4 z-10 space-y-2">
+                            <p class="font-sans text-xs tracking-widest uppercase text-goldLight/80">Edición Especial de Amor</p>
+                            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-goldAccent/20 border border-goldAccent/40 text-goldLight text-xs animate-bounce">
+                                <span>Haz clic para abrir</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inside Left (Page 1) -->
+                    <div class="page-face page-back paper-texture p-6 sm:p-10 flex flex-col justify-between spine-shadow-left">
+                        <div class="flex justify-between items-center border-b border-roseAccent/20 pb-2">
+                            <span class="font-cursive text-xl text-roseAccent">Capítulo I</span>
+                            <span class="text-xs text-gray-400 font-sans">Pág. 1</span>
+                        </div>
+                        
+                        <div class="my-auto space-y-4 text-left">
+                            <i class="fa-solid fa-quote-left text-3xl text-roseAccent/30"></i>
+                            <p class="text-base sm:text-lg leading-relaxed font-serif text-warmInk">
+                                Amor, paso a recordarte y a felicitarte por los ocho meses que acabamos de cumplir.
+                            </p>
+                            <p class="text-base sm:text-lg leading-relaxed font-serif text-warmInk font-medium text-rose-900">
+                                ¡Wow!, es asombroso todo este tiempo felices. No me queda más que agradecerte por cada sonrisa que me has sacado, por cada momento que hemos celebrado y por cada vez que me has hecho sentir único, dándole un verdadero propósito a mi vida.
+                            </p>
+                        </div>
+
+                        <div class="text-center pt-2 border-t border-roseAccent/20">
+                            <i class="fa-solid fa-heart text-roseAccent/40 text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SHEET 2 (Page 2 / Page 3) -->
+                <div id="page-2" class="page z-30" onclick="flipPage(2)">
+                    <!-- Page 2 (Right Side) -->
+                    <div class="page-face page-front paper-texture p-6 sm:p-10 flex flex-col justify-between spine-shadow-right">
+                        <div class="flex justify-between items-center border-b border-roseAccent/20 pb-2">
+                            <span class="text-xs text-gray-400 font-sans">Pág. 2</span>
+                            <span class="font-cursive text-xl text-roseAccent">Capítulo II</span>
+                        </div>
+
+                        <div class="my-auto space-y-4 text-left">
+                            <p class="text-base sm:text-lg leading-relaxed font-serif text-warmInk">
+                                Tal vez te preguntes cuál es ese propósito: <strong class="text-rose-800 font-semibold">hacerte feliz</strong>, nada más que eso.
+                            </p>
+                            <p class="text-base sm:text-lg leading-relaxed font-serif text-warmInk">
+                                Estos días en los que hemos estado separados escuché tu podcast sobre nuestra vida de casados, y te juro que quiero que eso se convierta en realidad.
+                            </p>
+                            <p class="text-base sm:text-lg leading-relaxed font-serif text-warmInk italic bg-roseAccent/10 p-3 rounded-lg border-l-2 border-roseAccent">
+                                "No deseo otra cosa que formar una vida a tu lado. Sé que el camino no siempre será fácil y que habrá problemas, pero no importa; los resolveremos juntos."
+                            </p>
+                        </div>
+
+                        <div class="text-center pt-2 border-t border-roseAccent/20">
+                            <i class="fa-solid fa-infinity text-roseAccent/40 text-sm"></i>
+                        </div>
+                    </div>
+
+                    <!-- Page 3 (Left Side turned) -->
+                    <div class="page-face page-back paper-texture p-6 sm:p-10 flex flex-col justify-between spine-shadow-left">
+                        <div class="flex justify-between items-center border-b border-roseAccent/20 pb-2">
+                            <span class="font-cursive text-xl text-roseAccent">Capítulo III</span>
+                            <span class="text-xs text-gray-400 font-sans">Pág. 3</span>
+                        </div>
+
+                        <div class="my-auto space-y-4 text-left">
+                            <p class="text-base sm:text-lg leading-relaxed font-serif text-warmInk">
+                                Estos ocho meses me han enseñado que no hay mejor lugar que estar contigo, ni sensación más pura que un abrazo tuyo.
+                            </p>
+                            <p class="text-base sm:text-lg leading-relaxed font-serif text-warmInk">
+                                Comprendo que lo repito demasiado, pero te agradezco infinitamente por todas las veces en que me has hecho mejor persona y por la forma en que te metiste en mi corazón sin que me diera cuenta.
+                            </p>
+                        </div>
+
+                        <div class="text-center pt-2 border-t border-roseAccent/20">
+                            <i class="fa-solid fa-dove text-roseAccent/40 text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SHEET 3 (Page 4 / Page 5) -->
+                <div id="page-3" class="page z-20" onclick="flipPage(3)">
+                    <!-- Page 4 (Right Side) -->
+                    <div class="page-face page-front paper-texture p-6 sm:p-10 flex flex-col justify-between spine-shadow-right">
+                        <div class="flex justify-between items-center border-b border-roseAccent/20 pb-2">
+                            <span class="text-xs text-gray-400 font-sans">Pág. 4</span>
+                            <span class="font-cursive text-xl text-roseAccent">Capítulo IV</span>
+                        </div>
+
+                        <div class="my-auto space-y-3 text-left">
+                            <p class="text-sm sm:text-base leading-relaxed font-serif text-warmInk">
+                                Perdón si este mensaje es breve, pero el recuerdo de tantos momentos hermosos a tu lado me conmueve profundamente y hasta me hace llorar.
+                            </p>
+                            <p class="text-sm sm:text-base leading-relaxed font-serif text-warmInk">
+                                A veces siento que no te merezco, y por eso te pido sinceras disculpas.
+                            </p>
+                            <p class="text-sm sm:text-base leading-relaxed font-serif text-warmInk font-medium text-rose-900 border-l-2 border-goldAccent pl-3">
+                                Entiendo que las palabras no arreglan todo por sí solas, pero estoy dispuesto a esforzarme al máximo para volverme digno de ti y poder decir con orgullo que eres mi mujer.
+                            </p>
+                        </div>
+
+                        <div class="text-center pt-2 border-t border-roseAccent/20">
+                            <i class="fa-solid fa-feather-pointed text-roseAccent/40 text-sm"></i>
+                        </div>
+                    </div>
+
+                    <!-- Page 5 (Left Side turned) -->
+                    <div class="page-face page-back paper-texture p-6 sm:p-10 flex flex-col justify-between spine-shadow-left">
+                        <div class="flex justify-between items-center border-b border-roseAccent/20 pb-2">
+                            <span class="font-cursive text-xl text-roseAccent">Capítulo V</span>
+                            <span class="text-xs text-gray-400 font-sans">Pág. 5</span>
+                        </div>
+
+                        <div class="my-auto space-y-4 text-left">
+                            <h3 class="font-playfair text-lg sm:text-xl font-bold text-rose-900 border-b border-rose-200 pb-1">
+                                Mi promesa para ti:
+                            </h3>
+                            <ul class="space-y-3 font-serif text-sm sm:text-base">
+                                <li class="flex items-start gap-2">
+                                    <i class="fa-solid fa-dumbbell text-roseAccent mt-1"></i>
+                                    <span><strong>Entrenar</strong> para tener un buen físico.</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <i class="fa-solid fa-graduation-cap text-roseAccent mt-1"></i>
+                                    <span><strong>Estudiar</strong> para ser un excelente alumno.</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <i class="fa-solid fa-comments text-roseAccent mt-1"></i>
+                                    <span><strong>Aprender a expresarme</strong> sin reservas.</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <i class="fa-solid fa-heart-circle-check text-roseAccent mt-1"></i>
+                                    <span>Y sobre todo... <strong>dominar tu lenguaje del amor</strong>.</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="text-center pt-2 border-t border-roseAccent/20">
+                            <i class="fa-solid fa-sparkles text-roseAccent/40 text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SHEET 4 (Page 6 / Back Cover) -->
+                <div id="page-4" class="page z-10" onclick="flipPage(4)">
+                    <!-- Page 6 (Right Side) -->
+                    <div class="page-face page-front paper-texture p-6 sm:p-10 flex flex-col justify-between spine-shadow-right text-center">
+                        <div class="flex justify-between items-center border-b border-roseAccent/20 pb-2">
+                            <span class="text-xs text-gray-400 font-sans">Pág. 6</span>
+                            <span class="font-cursive text-xl text-roseAccent">Cierre</span>
+                        </div>
+
+                        <div class="my-auto space-y-6">
+                            <p class="font-cursive text-3xl sm:text-4xl text-rose-900 leading-snug">
+                                Gracias por todo.
+                            </p>
+
+                            <div class="p-4 bg-rose-50 rounded-2xl border border-rose-200 shadow-sm space-y-2">
+                                <p class="font-cinzel text-lg sm:text-xl font-bold text-warmInk">
+                                    ¡Felices ocho meses!
+                                </p>
+                                <p class="font-cursive text-2xl sm:text-3xl text-roseAccent font-bold">
+                                    Mi corazontito de melocotón 
+                                </p>
+                            </div>
+
+                            <button onclick="triggerSurprise(event)" class="px-6 py-2.5 rounded-full bg-roseAccent text-white font-sans text-xs sm:text-sm tracking-wider uppercase shadow-lg hover:bg-rose-700 transition transform hover:scale-105 active:scale-95 flex items-center gap-2 mx-auto">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                Enviar un abrazo virtual
+                            </button>
+                        </div>
+
+                        <div class="text-center pt-2 border-t border-roseAccent/20">
+                            <i class="fa-solid fa-heart text-roseAccent text-base animate-pulse"></i>
+                        </div>
+                    </div>
+
+                    <!-- Back Cover -->
+                    <div class="page-face page-back bg-bookCover border-2 border-goldAccent/30 p-8 flex flex-col justify-between items-center text-center text-goldLight shadow-2xl">
+                        <div class="my-auto space-y-4">
+                            <i class="fa-solid fa-book-open text-4xl text-goldAccent"></i>
+                            <h2 class="font-cinzel text-xl font-bold tracking-widest text-goldLight">Siempre Juntos</h2>
+                            <p class="font-cursive text-2xl text-roseAccent">8 Meses de pura felicidad</p>
+                        </div>
+
+                        <button onclick="resetBook(event)" class="px-5 py-2 rounded-full bg-goldAccent/20 border border-goldAccent/40 text-goldLight text-xs hover:bg-goldAccent/40 transition">
+                            <i class="fa-solid fa-rotate-left mr-1"></i> Volver al Inicio
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <footer class="w-full max-w-xl z-20 flex items-center justify-between px-4 py-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 shadow-2xl">
+        <button id="prev-btn" onclick="prevPage()" class="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-sans transition disabled:opacity-30 disabled:cursor-not-allowed">
+            <i class="fa-solid fa-chevron-left"></i>
+            <span>Anterior</span>
+        </button>
+
+        <div class="flex space-x-1.5" id="dots-container">
+            <!-- Navigation dots populated by JS -->
+        </div>
+
+        <button id="next-btn" onclick="nextPage()" class="flex items-center gap-2 px-4 py-2 rounded-full bg-roseAccent hover:bg-rose-700 text-white text-xs sm:text-sm font-sans transition disabled:opacity-30 disabled:cursor-not-allowed">
+            <span>Siguiente</span>
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    </footer>
+
+    <!-- Interactive Logic & Animations -->
+    <script>
+        // State Management
+        let currentPage = 0; // 0 = Cover closed, 1 = Sheet 1 turned, etc.
+        const totalSheets = 4;
+        let isAudioPlaying = false;
+        let audioCtx = null;
+        let oscillator = null;
+        let gainNode = null;
+        let musicInterval = null;
+
+        // Element References
+        const page1 = document.getElementById('page-1');
+        const page2 = document.getElementById('page-2');
+        const page3 = document.getElementById('page-3');
+        const page4 = document.getElementById('page-4');
+        const sheets = [page1, page2, page3, page4];
+
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const pageIndicator = document.getElementById('page-indicator');
+        const dotsContainer = document.getElementById('dots-container');
+        const musicBtn = document.getElementById('music-btn');
+        const musicIcon = document.getElementById('music-icon');
+
+        // Page Labels for Indicator
+        const pageLabels = [
+            "Portada",
+            "Páginas 1 - 2",
+            "Páginas 3 - 4",
+            "Páginas 5 - 6",
+            "Contraportada"
+        ];
+
+        // Initialize Book State
+        function initBook() {
+            updateBookView();
+            renderDots();
+            setupKeyboardNav();
+            initHeartsCanvas();
+        }
+
+        // Render Pagination Dots
+        function renderDots() {
+            dotsContainer.innerHTML = '';
+            for (let i = 0; i <= totalSheets; i++) {
+                const dot = document.createElement('div');
+                dot.className = `w-2 h-2 rounded-full transition-all duration-300 ${i === currentPage ? 'bg-goldAccent w-5' : 'bg-white/30'}`;
+                dotsContainer.appendChild(dot);
+            }
+        }
+
+        // Page Turning Logic
+        function flipPage(sheetIndex) {
+            if (sheetIndex === currentPage + 1) {
+                // Turning forward
+                currentPage++;
+            } else if (sheetIndex === currentPage) {
+                // Turning back
+                currentPage--;
+            }
+            updateBookView();
+            playPageFlipSound();
+        }
+
+        function nextPage() {
+            if (currentPage < totalSheets) {
+                currentPage++;
+                updateBookView();
+                playPageFlipSound();
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 0) {
+                currentPage--;
+                updateBookView();
+                playPageFlipSound();
+            }
+        }
+
+        function resetBook(e) {
+            if (e) e.stopPropagation();
+            currentPage = 0;
+            updateBookView();
+            playPageFlipSound();
+        }
+
+        // Update 3D Rotations and Z-Index
+        function updateBookView() {
+            sheets.forEach((sheet, index) => {
+                const sheetNum = index + 1;
+                if (sheetNum <= currentPage) {
+                    // Flipped sheet
+                    sheet.classList.add('flipped');
+                    sheet.style.zIndex = sheetNum;
+                } else {
+                    // Unflipped sheet
+                    sheet.classList.remove('flipped');
+                    sheet.style.zIndex = totalSheets - sheetNum + 10;
+                }
+            });
+
+            // Update Controls State
+            prevBtn.disabled = currentPage === 0;
+            nextBtn.disabled = currentPage === totalSheets;
+
+            // Update Indicator Label
+            pageIndicator.textContent = pageLabels[currentPage];
+            renderDots();
+        }
+
+        // Keyboard Controls
+        function setupKeyboardNav() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight' || e.key === ' ') {
+                    nextPage();
+                } else if (e.key === 'ArrowLeft') {
+                    prevPage();
+                }
+            });
+        }
+
+        // Web Audio API Synthesized Soft Musical Chords
+        function toggleMusic() {
+            if (!isAudioPlaying) {
+                startMelody();
+                musicBtn.classList.add('bg-roseAccent', 'text-goldLight');
+                musicIcon.className = 'fa-solid fa-volume-high text-sm';
+                isAudioPlaying = true;
+            } else {
+                stopMelody();
+                musicBtn.classList.remove('bg-roseAccent', 'text-goldLight');
+                musicIcon.className = 'fa-solid fa-music text-sm';
+                isAudioPlaying = false;
+            }
+        }
+
+        musicBtn.addEventListener('click', toggleMusic);
+
+        function startMelody() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+
+                // Gentle Arpeggio Notes (Acoustic-style Warm Frequencies in Hz)
+                const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63]; 
+                let noteIdx = 0;
+
+                musicInterval = setInterval(() => {
+                    if (!audioCtx) return;
+                    
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(notes[noteIdx], audioCtx.currentTime);
+
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 1.2);
+
+                    noteIdx = (noteIdx + 1) % notes.length;
+                }, 500);
+
+            } catch (e) {
+                console.log("Audio not supported or blocked");
+            }
+        }
+
+        function stopMelody() {
+            if (musicInterval) clearInterval(musicInterval);
+            if (audioCtx) {
+                audioCtx.close();
+                audioCtx = null;
+            }
+        }
+
+        // Synthesized Page Flip Sound Effect
+        function playPageFlipSound() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioCtx();
+                
+                // White noise burst for paper rustle
+                const bufferSize = ctx.sampleRate * 0.15;
+                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 800;
+
+                const gain = ctx.createGain();
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(ctx.destination);
+
+                noise.start();
+                setTimeout(() => ctx.close(), 200);
+            } catch(e) {}
+        }
+
+        // Floating Hearts Background Canvas Effect
+        function initHeartsCanvas() {
+            const canvas = document.getElementById('hearts-canvas');
+            const ctx = canvas.getContext('2d');
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            const particles = [];
+            const particleCount = 25;
+
+            class HeartParticle {
+                constructor() {
+                    this.reset();
+                }
+
+                reset() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = canvas.height + Math.random() * 100;
+                    this.size = Math.random() * 12 + 8;
+                    this.speedY = Math.random() * 1 + 0.5;
+                    this.speedX = Math.sin(Math.random() * Math.PI) * 0.5;
+                    this.opacity = Math.random() * 0.5 + 0.2;
+                    this.color = `rgba(200, 109, 124, ${this.opacity})`;
+                }
+
+                update() {
+                    this.y -= this.speedY;
+                    this.x += this.speedX;
+                    if (this.y < -20) this.reset();
+                }
+
+                draw() {
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    // Heart shape path
+                    const topCurveHeight = this.size * 0.3;
+                    ctx.moveTo(0, topCurveHeight);
+                    ctx.bezierCurveTo(0, 0, -this.size / 2, 0, -this.size / 2, topCurveHeight);
+                    ctx.bezierCurveTo(-this.size / 2, (this.size + topCurveHeight) / 2, 0, this.size, 0, this.size);
+                    ctx.bezierCurveTo(0, this.size, this.size / 2, (this.size + topCurveHeight) / 2, this.size / 2, topCurveHeight);
+                    ctx.bezierCurveTo(this.size / 2, 0, 0, 0, 0, topCurveHeight);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new HeartParticle());
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+        }
+
+        // Surprise Animation Trigger
+        function triggerSurprise(event) {
+            event.stopPropagation();
+            const btn = event.currentTarget;
+            btn.innerHTML = '<i class="fa-solid fa-heart animate-ping"></i> ¡Enviado con Amor!';
+            btn.classList.replace('bg-roseAccent', 'bg-emerald-600');
+
+            // Burst of hearts from the button location
+            const rect = btn.getBoundingClientRect();
+            const canvas = document.getElementById('hearts-canvas');
+            const ctx = canvas.getContext('2d');
+
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    ctx.save();
+                    ctx.fillStyle = '#D4AF37';
+                    ctx.font = '20px FontAwesome';
+                    ctx.fillText('', rect.left + rect.width / 2 + (Math.random() * 100 - 50), rect.top + (Math.random() * 100 - 50));
+                    ctx.restore();
+                }, i * 30);
+            }
+
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Enviar un abrazo virtual';
+                btn.classList.replace('bg-emerald-600', 'bg-roseAccent');
+            }, 3000);
+        }
+
+        // Start on DOM Load
+        window.onload = initBook;
+    </script>
+</body>
+</html>
+```
